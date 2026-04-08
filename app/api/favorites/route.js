@@ -3,7 +3,14 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
-// Schéma pour AJOUTER un favori (champs obligatoires)
+const COOKIE_OPTS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 365,
+};
+
 const addFavoriteSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(1).max(200),
@@ -12,12 +19,11 @@ const addFavoriteSchema = z.object({
   overview: z.string().optional(),
 });
 
-// Schéma pour SUPPRIMER un favori (juste l'id suffit)
 const removeFavoriteSchema = z.object({
   id: z.number().int().positive(),
 });
 
-// Génère un userId compatible MongoDB (24 caractères hex) ou le récupère du cookie
+// Génère ou récupère le userId (et set le cookie si nouveau)
 async function getUserId() {
   const cookieStore = await cookies();
   let userId = cookieStore.get("userId")?.value;
@@ -26,6 +32,7 @@ async function getUserId() {
     userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
       .map(b => b.toString(16).padStart(2, '0'))
       .join('');
+    cookieStore.set("userId", userId, COOKIE_OPTS);
   }
   return userId;
 }
@@ -49,7 +56,6 @@ export async function POST(request) {
     const userId = await getUserId();
     const body = await request.json();
 
-    // On valide juste l'id pour vérifier si le favori existe
     const { id: movieId } = removeFavoriteSchema.parse(body);
 
     const existing = await prisma.favorite.findUnique({
@@ -58,13 +64,11 @@ export async function POST(request) {
       },
     });
 
-    // Si le film existe déjà, on le supprime (toggle)
     if (existing) {
       await prisma.favorite.delete({ where: { id: existing.id } });
       return NextResponse.json({ message: "Favori supprimé", action: "removed" });
     }
 
-    // Sinon on a besoin des infos complètes pour l'ajouter
     const data = addFavoriteSchema.parse(body);
 
     const favorite = await prisma.favorite.create({
