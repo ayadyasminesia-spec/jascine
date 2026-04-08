@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?    @unique
+  emailVerified DateTime?
+  image         String?
+  favorites     Favorite[]
+}
+
+model Favorite {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  movieId     Int
+  title       String
+  posterPath  String?
+  releaseDate String?
+  overview    String?
+  userId      String   // <--- Vérifie bien qu'il n'y a QUE "String" ici
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@unique([movieId, userId])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
