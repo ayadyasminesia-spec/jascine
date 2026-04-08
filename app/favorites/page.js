@@ -1,11 +1,17 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { getUserId } from "@/lib/userId";
 
 export default function FavoritesPage() {
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(null);
+
+  // Garantit que le cookie existe avant tout fetch
+  useEffect(() => {
+    getUserId();
+  }, []);
 
   useEffect(() => {
     fetch("/api/favorites")

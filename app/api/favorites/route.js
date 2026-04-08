@@ -3,14 +3,6 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 
-const COOKIE_OPTS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
-  path: "/",
-  maxAge: 60 * 60 * 24 * 365,
-};
-
 const addFavoriteSchema = z.object({
   id: z.number().int().positive(),
   title: z.string().min(1).max(200),
@@ -23,23 +15,16 @@ const removeFavoriteSchema = z.object({
   id: z.number().int().positive(),
 });
 
-// Génère ou récupère le userId (et set le cookie si nouveau)
+// Récupère le userId du cookie (déjà créé côté client)
 async function getUserId() {
   const cookieStore = await cookies();
-  let userId = cookieStore.get("userId")?.value;
-
-  if (!userId) {
-    userId = Array.from(crypto.getRandomValues(new Uint8Array(12)))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    cookieStore.set("userId", userId, COOKIE_OPTS);
-  }
-  return userId;
+  return cookieStore.get("userId")?.value || "";
 }
 
 export async function GET() {
   try {
     const userId = await getUserId();
+    if (!userId) return NextResponse.json([]);
     const favorites = await prisma.favorite.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },

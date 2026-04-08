@@ -1,9 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
+import { getUserId } from "@/lib/userId";
 
 export default function FavoriteButton({ movie }) {
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Garantit que le cookie existe avant tout fetch
+  useEffect(() => {
+    getUserId();
+  }, []);
 
   useEffect(() => {
     const checkFavorite = async () => {
