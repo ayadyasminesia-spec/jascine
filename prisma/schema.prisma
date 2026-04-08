@@ -13,7 +13,6 @@ model User {
   email         String?    @unique
   emailVerified DateTime?
   image         String?
-  favorites     Favorite[]
 }
 
 model Favorite {
@@ -23,10 +22,10 @@ model Favorite {
   posterPath  String?
   releaseDate String?
   overview    String?
-  userId      String   // <--- Vérifie bien qu'il n'y a QUE "String" ici
+  userId      String
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   @@unique([movieId, userId])
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
 }
